@@ -84,6 +84,8 @@ class PolynomialExpression(Expression):
         self.exp = exponent
 
     def diff(self, ref_var: Optional[Variable] = None) -> Optional[Expression]:
+        if ref_var and ref_var != self.var:
+            return None
         if self.exp == 1:
             return ConstantExpression(real=self.coefficient)
         return PolynomialExpression(
@@ -115,13 +117,17 @@ class MultiVariableFunction:
         self.expressions = expressions
 
     def gradient(self, point: Optional[Point] = None) -> GradientVector:
-        # TODO(Jonathon): implement
-        if point:
-            raise RuntimeError("Fuck fuck")
         grad_v: GradientVector = {}
         for v in self.vars:
             grad_v[v] = self.diff(ref_var=v)
-        return grad_v
+        if point:
+            return {
+                var: f.evaluate(point)
+                for var, f
+                in grad_v.items()
+            }
+        else:
+            return grad_v
 
     def diff(self, ref_var: Variable) -> "MultiVariableFunction":
         first_partial_derivatives: List[Expression] = []
@@ -155,15 +161,25 @@ def gradient_descent(
 
     a: Point = {}
     for v in f.vars:
-        a[v] = random.randrange(100)
+        a[v] = random.randrange(4)
     for i in range(max_iterations):
-        grad_a = f.gradient(a)
-    return 0, {}
+        grad_a: GradientVector = f.gradient(a)
+        # update estimate of minimum point
+        a_next = {
+            var: current - (gamma * grad_a[var])
+            for var, current
+            in a.items()
+        }
+        a = a_next
+        if i % 10 == 0:
+            print(f"Current min estimate: {a}")
+    return f.evaluate(a), a
 
 
 def main() -> None:
     print("hello world")
     x = Variable("x")
+    y = Variable("y")
     exp = PolynomialExpression(
         variable=x,
         coefficient=2,
@@ -171,6 +187,24 @@ def main() -> None:
     )
     print(exp)
     print(exp.diff())
+
+    test_f = MultiVariableFunction(
+        variables={x, y},
+        expressions=[
+            PolynomialExpression(variable=x, coefficient=1, exponent=2),
+            PolynomialExpression(variable=y, coefficient=1, exponent=2),
+            PolynomialExpression(variable=x, coefficient=-2, exponent=1),
+            PolynomialExpression(variable=y, coefficient=-6, exponent=1),
+            ConstantExpression(real=14.0),
+        ],
+    )
+    minimum_val, minimum_point = gradient_descent(
+        gamma=0.1,
+        max_iterations=5000,
+        f=test_f,
+    )
+    print(f"Min Value: {minimum_val}")
+    print(f"Min Location: {minimum_point}")
 
     # Test variable comparisons
     ##########################
@@ -185,14 +219,17 @@ def main() -> None:
     assert ConstantExpression(real=0.0).diff() is None
     assert ConstantExpression(real=4.5).diff() is None
     # PolynomialExpression
-    poly1_grad = PolynomialExpression(
+    poly1 = PolynomialExpression(
         variable=Variable("x"),
         coefficient=2,
         exponent=4,
-    ).diff()
-    assert poly1_grad.var == Variable("x")
-    assert poly1_grad.coefficient == 8
-    assert poly1_grad.exp == 3
+    )
+    poly1_grad1 = poly1.diff()
+    assert poly1_grad1.var == Variable("x")
+    assert poly1_grad1.coefficient == 8
+    assert poly1_grad1.exp == 3
+    poly1_grad2 = poly1.diff(ref_var=Variable("y"))
+    assert poly1_grad2 is None
 
     # Test function evaluation
     ##########################
@@ -210,7 +247,7 @@ def main() -> None:
     assert f1.evaluate(point={x: 1.0, y: 2.0}) == 7
     # Test function gradient
     g = f1.gradient()
-    print(g)
+    assert str(g[x]) == "3"
 
 
 
