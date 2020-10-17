@@ -1,5 +1,5 @@
 import random
-from typing import List, Optional, Dict, Set, Tuple, Union
+from typing import List, Mapping, Optional, Dict, Set, Tuple
 
 
 def _italic_str(text: str) -> str:
@@ -107,7 +107,7 @@ class PolynomialExpression(Expression):
         return f"{self.coefficient}{self.var}{_superscript_exp(str(self.exp))}"
 
 
-GradientVector = Dict[Variable, Union["MultiVariableFunction", float]]
+GradientVector = Dict[Variable, "MultiVariableFunction"]
 
 
 class MultiVariableFunction:
@@ -123,18 +123,11 @@ class MultiVariableFunction:
         self.vars = variables
         self.expressions = expressions
 
-    def gradient(self, point: Optional[Point] = None) -> GradientVector:
+    def gradient(self) -> GradientVector:
         grad_v: GradientVector = {}
         for v in self.vars:
             grad_v[v] = self.diff(ref_var=v)
-        if point:
-            return {
-                var: f.evaluate(point)
-                for var, f
-                in grad_v.items()
-            }
-        else:
-            return grad_v
+        return grad_v
 
     def diff(self, ref_var: Variable) -> "MultiVariableFunction":
         first_partial_derivatives: List[Expression] = []
@@ -159,9 +152,9 @@ class MultiVariableFunction:
 
 
 def gradient_descent(
-        gamma: float,
-        max_iterations: int,
-        f: MultiVariableFunction,
+    gamma: float,
+    max_iterations: int,
+    f: MultiVariableFunction,
 ) -> Tuple[float, Point]:
     """
     Implements Gradient Descent (https://en.wikipedia.org/wiki/Gradient_descent) in pure-Python3.6+ with
@@ -176,10 +169,15 @@ def gradient_descent(
         raise ValueError("gamma value must be a positive real number, γ∈ℝ+")
 
     a: Point = {}
+    f_grad = f.gradient()
     for v in f.vars:
         a[v] = random.randrange(4)
     for i in range(max_iterations):
-        grad_a: GradientVector = f.gradient(a)
+        grad_a: Mapping[Variable, float] = {
+            var: grad_elem.evaluate(a)
+            for var, grad_elem
+            in f_grad.items()
+        }
         # update estimate of minimum point
         a_next = {
             var: current - (gamma * grad_a[var])
