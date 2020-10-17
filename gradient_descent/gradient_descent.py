@@ -118,21 +118,23 @@ class MultiVariableFunction:
     Partial differentiation with respect to a single variable is supported, as is
     evaluation at a Point, and gradient finding.
     """
+
     def __init__(self, variables: Set[Variable], expressions: List[Expression]):
         self.vars = variables
         self.expressions = expressions
-        self._grad_vector = None
 
     def gradient(self, point: Optional[Point] = None) -> GradientVector:
-        if not self._grad_vector:
-            self._grad_vector = self._calculate_grad_vector()
-        if not point:
-            return self._grad_vector
-        return {
-            var: f.evaluate(point)
-            for var, f
-            in self._grad_vector.items()
-        }
+        grad_v: GradientVector = {}
+        for v in self.vars:
+            grad_v[v] = self.diff(ref_var=v)
+        if point:
+            return {
+                var: f.evaluate(point)
+                for var, f
+                in grad_v.items()
+            }
+        else:
+            return grad_v
 
     def diff(self, ref_var: Variable) -> "MultiVariableFunction":
         first_partial_derivatives: List[Expression] = []
@@ -151,12 +153,6 @@ class MultiVariableFunction:
             for expression
             in self.expressions
         )
-
-    def _calculate_grad_vector(self) -> GradientVector:
-        grad_v: GradientVector = {}
-        for v in self.vars:
-            grad_v[v] = self.diff(ref_var=v)
-        return grad_v
 
     def __repr__(self):
         return " + ".join([str(e) for e in self.expressions])
