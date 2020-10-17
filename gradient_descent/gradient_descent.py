@@ -173,6 +173,7 @@ def gradient_descent(
     for v in f.vars:
         a[v] = random.randrange(4)
     for i in range(max_iterations):
+        # Calculate function's gradient @ point `a`
         grad_a: Mapping[Variable, float] = {
             var: grad_elem.evaluate(a)
             for var, grad_elem
