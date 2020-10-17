@@ -10,8 +10,12 @@ def _superscript_exp(n: str) -> str:
     return "".join(["⁰¹²³⁴⁵⁶⁷⁸⁹"[ord(c) - ord('0')] for c in str(n)])
 
 
-# TODO(Jonathon): https://stackoverflow.com/a/13559470/4885590
 class Variable:
+    """
+    A object representing a mathematical variable, for use in building expressions.
+
+    Usage: `x = Variable("x")`
+    """
     def __init__(self, var: str):
         if len(var) != 1 or (not var.isalpha()):
             raise ValueError("Variable must be single alphabetical character. eg. 'x'")
@@ -33,17 +37,11 @@ class Variable:
         return hash(self.__key())
 
 
+# An element of some set called a space. Here, that 'space' will be the domain of a multi-variable function.
 Point = Mapping[Variable, float]
 
 
 class Expression:
-    """
-    TODO
-    """
-
-    def __init__(self):
-        pass
-
     def diff(self, ref_var: Optional[Variable] = None) -> Optional["Expression"]:
         raise NotImplementedError
 
@@ -53,7 +51,8 @@ class Expression:
 
 class ConstantExpression(Expression):
     """
-
+    ConstantExpression is a single real-valued number.
+    It cannot be parameterised and it's first-derivative is always 0 (None).
     """
 
     def __init__(self, real: float):
@@ -71,7 +70,11 @@ class ConstantExpression(Expression):
 
 
 class PolynomialExpression(Expression):
-    # TODO(Jonathon): Multi-variable expression
+    """
+    An expression object that support evaluation and differentiation of single-variable polynomials.
+
+    # TODO(Jonathon): Support multi-variable expressions. Eg. 4xy^2z^2
+    """
     def __init__(
             self,
             variable: Variable,
@@ -109,7 +112,11 @@ GradientVector = Mapping[Variable, Union["MultiVariableFunction", float]]
 
 class MultiVariableFunction:
     """
-    TODO
+    MultiVariableFunction support the composition of expressions by addition into a
+    function of multiple real-valued variables.
+
+    Partial differentiation with respect to a single variable is supported, as is
+    evaluation at a Point, and gradient finding.
     """
 
     def __init__(self, variables: Set[Variable], expressions: List[Expression]):
@@ -156,6 +163,15 @@ def gradient_descent(
         max_iterations: int,
         f: MultiVariableFunction,
 ) -> (float, Point):
+    """
+    Implements Gradient Descent (https://en.wikipedia.org/wiki/Gradient_descent) in pure-Python3.6+ with
+    no external dependencies.
+
+    :param gamma: 'step size', or 'learning rate'
+    :param max_iterations: Maximum number of steps in descent process.
+    :param f: A differentiable function off multiple real-valued variables.
+    :return: A tuple of first a local minimum and second the point at which minimum is found.
+    """
     if gamma <= 0:
         raise ValueError("gamma value must be a positive real number, γ∈ℝ+")
 
@@ -248,7 +264,6 @@ def main() -> None:
     # Test function gradient
     g = f1.gradient()
     assert str(g[x]) == "3"
-
 
 
 if __name__ == "__main__":
