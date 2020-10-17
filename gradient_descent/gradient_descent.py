@@ -1,5 +1,5 @@
 import random
-from typing import List, Optional, Mapping, Set, Union
+from typing import List, Optional, Dict, Set, Tuple, Union
 
 
 def _italic_str(text: str) -> str:
@@ -38,7 +38,7 @@ class Variable:
 
 
 # An element of some set called a space. Here, that 'space' will be the domain of a multi-variable function.
-Point = Mapping[Variable, float]
+Point = Dict[Variable, float]
 
 
 class Expression:
@@ -107,7 +107,7 @@ class PolynomialExpression(Expression):
         return f"{self.coefficient}{self.var}{_superscript_exp(str(self.exp))}"
 
 
-GradientVector = Mapping[Variable, Union["MultiVariableFunction", float]]
+GradientVector = Dict[Variable, Union["MultiVariableFunction", float]]
 
 
 class MultiVariableFunction:
@@ -118,23 +118,21 @@ class MultiVariableFunction:
     Partial differentiation with respect to a single variable is supported, as is
     evaluation at a Point, and gradient finding.
     """
-
     def __init__(self, variables: Set[Variable], expressions: List[Expression]):
         self.vars = variables
         self.expressions = expressions
+        self._grad_vector = None
 
     def gradient(self, point: Optional[Point] = None) -> GradientVector:
-        grad_v: GradientVector = {}
-        for v in self.vars:
-            grad_v[v] = self.diff(ref_var=v)
-        if point:
-            return {
-                var: f.evaluate(point)
-                for var, f
-                in grad_v.items()
-            }
-        else:
-            return grad_v
+        if not self._grad_vector:
+            self._grad_vector = self._calculate_grad_vector()
+        if not point:
+            return self._grad_vector
+        return {
+            var: f.evaluate(point)
+            for var, f
+            in self._grad_vector.items()
+        }
 
     def diff(self, ref_var: Variable) -> "MultiVariableFunction":
         first_partial_derivatives: List[Expression] = []
@@ -154,6 +152,12 @@ class MultiVariableFunction:
             in self.expressions
         )
 
+    def _calculate_grad_vector(self) -> GradientVector:
+        grad_v: GradientVector = {}
+        for v in self.vars:
+            grad_v[v] = self.diff(ref_var=v)
+        return grad_v
+
     def __repr__(self):
         return " + ".join([str(e) for e in self.expressions])
 
@@ -162,7 +166,7 @@ def gradient_descent(
         gamma: float,
         max_iterations: int,
         f: MultiVariableFunction,
-) -> (float, Point):
+) -> Tuple[float, Point]:
     """
     Implements Gradient Descent (https://en.wikipedia.org/wiki/Gradient_descent) in pure-Python3.6+ with
     no external dependencies.
