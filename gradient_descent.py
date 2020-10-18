@@ -1,7 +1,14 @@
+"""
+Pure-Python3 implementation of Gradient Descent (https://en.wikipedia.org/wiki/Gradient_descent).
+Written for educational/learning purposes and not performance.
+
+Completed as part of the UTS course '35512 - Modelling Change' (https://handbook.uts.edu.au/subjects/35512.html).
+"""
 import random
 from typing import List, Mapping, Optional, Dict, Set, Tuple
 
 
+# Used to make chars like 'x' resemble typical mathematical symbols.
 def _italic_str(text: str) -> str:
     return f"\x1B[3m{text}\x1B[23m"
 
