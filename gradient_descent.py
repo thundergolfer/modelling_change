@@ -114,6 +114,38 @@ class PolynomialExpression(Expression):
         return f"{self.coefficient}{self.var}{_superscript_exp(str(self.exp))}"
 
 
+class Multiply(Expression):
+    def __init__(self, a: PolynomialExpression, b: PolynomialExpression):
+        self.a = a
+        self.b = b
+
+    def diff(self, ref_var: Optional[Variable] = None) -> Optional["Expression"]:
+        if not ref_var:
+            raise RuntimeError("Must pass ref_var when differentiating Multiply expression")
+        if self.a.var == ref_var:
+            diff_a = self.a.diff(ref_var=ref_var)
+            if not diff_a:
+                return None
+            else:
+                return Multiply(a=diff_a, b=self.b)
+        elif self.b.var == ref_var:
+            diff_b = self.b.diff(ref_var=ref_var)
+            if not diff_b:
+                return None
+            else:
+                return Multiply(a=self.a, b=diff_b)
+        else:
+            return None  # diff with respect to some non-involved variable is 0
+
+
+    def evaluate(self, point: Point) -> float:
+        return self.a.evaluate(point) * self.b.evaluate(point)
+
+    def __repr__(self):
+        return f"({self.a})({self.b})"
+
+
+
 GradientVector = Dict[Variable, "MultiVariableFunction"]
 
 
@@ -162,6 +194,7 @@ def gradient_descent(
     gamma: float,
     max_iterations: int,
     f: MultiVariableFunction,
+    initial_point: Optional[Point] = None,
 ) -> Tuple[float, Point]:
     """
     Implements Gradient Descent (https://en.wikipedia.org/wiki/Gradient_descent) in pure-Python3.6+ with
@@ -170,16 +203,21 @@ def gradient_descent(
     :param gamma: 'step size', or 'learning rate'
     :param max_iterations: Maximum number of steps in descent process.
     :param f: A differentiable function off multiple real-valued variables.
+    :param initial_point: Optionally, a place to start the descent process
     :return: A tuple of first a local minimum and second the point at which minimum is found.
     """
     if gamma <= 0:
         raise ValueError("gamma value must be a positive real number, γ∈ℝ+")
 
-    iterations_per_logline = 10
+    iterations_per_logline = 100
     a: Point = {}
     f_grad = f.gradient()
-    for v in f.vars:
-        a[v] = random.randrange(4)
+
+    if not initial_point:
+        for v in f.vars:
+            a[v] = random.randrange(4)
+    else:
+        a = initial_point
     for i in range(max_iterations):
         # Calculate function's gradient @ point `a`
         grad_a: Mapping[Variable, float] = {
@@ -195,6 +233,7 @@ def gradient_descent(
         }
         a_prev = a
         a = a_next
+
         if a_prev == a:
             print("Iteration as not changed value. Stopping early.")
             break
@@ -275,6 +314,19 @@ def main() -> None:
     # Test function gradient
     g = f1.gradient()
     assert str(g[x]) == "3"
+
+    # Test Multiply
+    ##########################
+    a = PolynomialExpression(variable=x, coefficient=3, exponent=1)
+    b = PolynomialExpression(variable=y, coefficient=1, exponent=2)
+    a_times_b = Multiply(a=a, b=b)
+    result = a_times_b.evaluate(point={x: 2.0, y: 4.0})
+    assert result == (6 * 16)
+    result = a_times_b.evaluate(point={x: 3.0, y: 5.0})
+    assert result == 225
+    # Test diff on multiplication expression
+    a_times_b_diff = a_times_b.diff(ref_var=x)
+    assert a_times_b_diff.evaluate(point={x: 1.0, y: 5.0}) == 75
 
 
 if __name__ == "__main__":
