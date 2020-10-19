@@ -137,13 +137,11 @@ class Multiply(Expression):
         else:
             return None  # diff with respect to some non-involved variable is 0
 
-
     def evaluate(self, point: Point) -> float:
         return self.a.evaluate(point) * self.b.evaluate(point)
 
     def __repr__(self):
         return f"({self.a})({self.b})"
-
 
 
 GradientVector = Dict[Variable, "MultiVariableFunction"]
