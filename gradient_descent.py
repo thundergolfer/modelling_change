@@ -175,6 +175,7 @@ def gradient_descent(
     if gamma <= 0:
         raise ValueError("gamma value must be a positive real number, γ∈ℝ+")
 
+    iterations_per_logline = 10
     a: Point = {}
     f_grad = f.gradient()
     for v in f.vars:
@@ -192,9 +193,13 @@ def gradient_descent(
             for var, current
             in a.items()
         }
+        a_prev = a
         a = a_next
-        if i % 10 == 0:
-            print(f"Current min estimate: {a}")
+        if a_prev == a:
+            print("Iteration as not changed value. Stopping early.")
+            break
+        if i % iterations_per_logline == 0:
+            print(f"Iteration {i}. Current min estimate: {a}")
     return f.evaluate(a), a
 
 
