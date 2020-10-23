@@ -79,8 +79,6 @@ class ConstantExpression(Expression):
 class PolynomialExpression(Expression):
     """
     An expression object that support evaluation and differentiation of single-variable polynomials.
-
-    # TODO(Jonathon): Support multi-variable expressions. Eg. 4xy^2z^2
     """
     def __init__(
             self,
